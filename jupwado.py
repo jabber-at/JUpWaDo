@@ -16,7 +16,7 @@ class request:
 		if frm not in request.requests.keys():
 			return
 		
-		if request.requests[frm].handle( packet )
+		if request.requests[frm].handle( packet ):
 			del( request.requests[frm] )
 		
 	def cleanup():
