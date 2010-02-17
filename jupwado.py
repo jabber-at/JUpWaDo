@@ -35,11 +35,12 @@ class request:
 	handler = staticmethod( handler )
 	cleanup = staticmethod( cleanup )
 
-	def __init__( self, path, section ):
+	def __init__( self, path, section, threshold ):
 		self.path = path
 		self.section = section
 		self.jid = self.section.strip()
 		self.db = os.path.normpath( path + '/' + self.get_filename() )
+		self.threshold = threshold
 
 	def check_env( self ):
 		if not os.path.exists( self.path ):
@@ -87,7 +88,7 @@ class request:
 			sql = '''INSERT INTO scans(stamp, online, value)
 				VALUES(?, ?, ?)'''
 			tuple = (stamp, 1, seconds)
-			if seconds < 300:
+			if seconds < self.threshold:
 				tuple[1] = (stamp, 0, seconds)
 		elif type == 'error':
 			for child in packet.getChildren():
@@ -149,6 +150,10 @@ class connection( threading.Thread ):
 parser = OptionParser()
 parser.add_option( '-c', '--config', metavar='FILE',
 	help='Location of config-file' )
+parser.add_option( '-t', '--threshold', metavar='SECS', type="int", default=300,
+	help='''Uptimes below this threshold will be considered as "Was offline
+since the last scan" and will be logged as offline. Usually this time should
+correspond to how often this script is executed. [default: %default (= five minutes)]''' )
 options, args = parser.parse_args()
 
 config = ConfigParser.ConfigParser( {'path': os.path.expanduser( '~/.jupwado/db/' ) } )
@@ -167,7 +172,7 @@ if len( server_list ) == 0:
 
 for server in server_list:
 	path = config.get( server, 'path' )
-	req = request( path, server )
+	req = request( path, server, options.threshold )
 	if req.check_env():
 		request.requests[req.jid] = req
 		
