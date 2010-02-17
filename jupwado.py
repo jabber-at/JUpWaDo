@@ -82,8 +82,6 @@ class request:
 #		print( "Received response for " + self.jid )
 		type = packet.getType()
 
-		conn = sqlite3.connect( self.db )
-		c = conn.cursor()
 		if type == 'result':
 			seconds = packet.kids[0].getAttr( 'seconds' )
 			sql = '''INSERT INTO scans(stamp, online, value)
@@ -98,7 +96,12 @@ class request:
 			sql = '''INSERT INTO scans( stamp, online, error)
 				VALUES(?, ?, ?)'''
 			tuple = (stamp, 0, msg)
+		else:
+			print( 'Received packet of type ' + type )
+			return
 
+		conn = sqlite3.connect( self.db )
+		c = conn.cursor()
 		c.execute( sql, tuple )
 		conn.commit()
 		c.close()
