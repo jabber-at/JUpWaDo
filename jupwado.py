@@ -125,7 +125,6 @@ class connection( threading.Thread ):
 		self.GoOn()
 	
 	def stop( self ):
-		print( "Stop." )
 		self.cont = False
 		request.cleanup()
 
@@ -179,7 +178,7 @@ for server in server_list:
 my_jid=xmpp.protocol.JID( config.get( 'system', 'jid' ) )
 cl=xmpp.Client( my_jid.getDomain(), debug=[] )
 cl.connect()
-cl.auth( my_jid.getNode(), config.get( 'system', 'pwd' ), resource='jupwado' )
+cl.auth( my_jid.getNode(), config.get( 'system', 'pwd' ), resource=resource )
 cl.sendInitPresence()
 cl.RegisterHandler( 'iq', request.handler, ns=xmpp.NS_LAST )
 
