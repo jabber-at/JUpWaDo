@@ -16,9 +16,8 @@ class request:
 		if frm not in request.requests.keys():
 			return
 		
-		request.requests[frm].handle( packet )
-
-		del( request.requests[frm] )
+		if request.requests[frm].handle( packet )
+			del( request.requests[frm] )
 		
 	def cleanup():
 		try:
@@ -99,13 +98,14 @@ class request:
 			tuple = (stamp, 0, msg)
 		else:
 			print( 'Received packet of type ' + type )
-			return
+			return False
 
 		conn = sqlite3.connect( self.db )
 		c = conn.cursor()
 		c.execute( sql, tuple )
 		conn.commit()
 		c.close()
+		return True
 		
 	def send( self, conn ):
 #		print( "Sending uptime request to " + self.jid )
