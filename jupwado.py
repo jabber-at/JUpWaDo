@@ -113,22 +113,22 @@ class request:
 		conn.send( packet )
 
 class connection( threading.Thread ):
-	def __init__( self, con ):
+	def __init__( self, con, timeout ):
 		threading.Thread.__init__( self )
+		self.timer = threading.Timer( timeout, self.stop )
 		self.cont = True
 		self.con = con
 	
 	def run( self ):
-		self.timer = threading.Timer( 5.0, self.stop )
 		self.timer.start()
 
-		self.GoOn()
+		# this loops until all packets are processed
+		while self.StepOn(): pass
 	
 	def stop( self ):
 		self.cont = False
 		request.cleanup()
 
-	# infinite loop 1:
 	def StepOn( self ):
 		if self.cont == False: 
 			return 0
@@ -142,10 +142,6 @@ class connection( threading.Thread ):
 			return 0
 		return 1
 
-	# infinite loop 2:
-	def GoOn( self ):
-		while self.StepOn(): pass
-
 parser = OptionParser()
 parser.add_option( '-c', '--config', metavar='FILE',
 	help='Location of config-file' )
@@ -153,6 +149,8 @@ parser.add_option( '-t', '--threshold', metavar='SECS', type="int", default=300,
 	help='''Uptimes below this threshold will be considered as "Was offline
 since the last scan" and will be logged as offline. Usually this time should
 correspond to how often this script is executed. [default: %default (= five minutes)]''' )
+parser.add_option( '--timeout', metavar='SECS', type="int", default=15,
+	help='''Timeout after SECS seconds. [default: %default]''' )
 options, args = parser.parse_args()
 
 config = ConfigParser.ConfigParser( {'path': os.path.expanduser( '~/.jupwado/db/' ) } )
@@ -182,7 +180,7 @@ cl.auth( my_jid.getNode(), config.get( 'system', 'pwd' ), resource=resource )
 cl.sendInitPresence()
 cl.RegisterHandler( 'iq', request.handler, ns=xmpp.NS_LAST )
 
-connection_thread = connection( cl )
+connection_thread = connection( cl, options.timeout )
 connection_thread.start()
 
 for req in request.requests.values():
