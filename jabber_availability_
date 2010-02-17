@@ -129,5 +129,6 @@ for server in server_list:
 
 	if (uptime+downtime) != 0:
 		value = float(uptime/(uptime+downtime))*100
-		print ( "%s.value %f" % ( server, value ) )
+		field = get_fieldname( server )
+		print ( "%s.value %f" % ( field, value ) )
 
