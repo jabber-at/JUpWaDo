@@ -1,0 +1,8 @@
+[system]
+jid=user@example.com
+pwd=your password
+
+[jabber.fsinf.at]
+info=See <a href="http://jabber.fsinf.at">jabber.fsinf.at</a>.
+[jabber.ccc.de]
+[jabber.metalab.at]
