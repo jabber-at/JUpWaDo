@@ -85,6 +85,9 @@ graph_info This plugin uses a bot that connects from a remote location to jabber
 		for server in server_list:
 			field = get_fieldname( server )
 			print( """%s.label %s""" %(field, server) )
+			if config.has_option( server, 'info' ):
+				info = config.get( server, 'info' )
+				print( """%s.info %s""" %(field, info) )
 
 		sys.exit( 0 )
 
