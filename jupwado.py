@@ -20,16 +20,11 @@ class request:
 			del( request.requests[frm] )
 		
 	def cleanup():
-		try:
-			for req in request.requests.values():
-				exp = xmpp.Node( 'no-answer-received', {'xmlns': 'urn:ietf:params:xml:ns:xmpp-stanzas' } )
-				error = xmpp.Node( 'error', { 'code': 1, 'type': 'cancel' }, payload=[exp] )
-				packet = xmpp.Iq( 'error', xmpp.NS_LAST, to = req.jid )
-				packet.kids.append( error )
-				req.handle( packet )
-		finally:
-			pass
-#			os._exit( 0 )
+		for req in request.requests.values():
+			try:
+				req.handle_offline( 'no answer at all received!' )
+			except:
+				pass
 
 	handler = staticmethod( handler )
 	cleanup = staticmethod( cleanup )
@@ -79,33 +74,38 @@ class request:
 		return s.replace( '/', '_' )
 
 	def handle( self, packet ):
-#		print( "Received response for " + self.jid )
-		type = packet.getType()
+		typ = packet.getType()
 
-		if type == 'result':
+		if typ == 'result':
 			seconds = packet.kids[0].getAttr( 'seconds' )
-			sql = '''INSERT INTO scans(stamp, online, value)
-				VALUES(?, ?, ?)'''
-			tuple = (stamp, 1, seconds)
-			if seconds < self.threshold:
-				tuple[1] = (stamp, 0, seconds)
-		elif type == 'error':
-			for child in packet.getChildren():
-				if child.getName() == 'error':
-					msg = str(child)
-			sql = '''INSERT INTO scans( stamp, online, error)
-				VALUES(?, ?, ?)'''
-			tuple = (stamp, 0, msg)
+			self.handle_online( seconds )
+		elif typ == 'error':
+			self.handle_offline( packet.getError() )
 		else:
-			print( 'Received packet of type ' + type )
+			print( 'Received packet of type ' + typ )
 			return False
 
+		return True
+	
+	def handle_online( self, seconds ):
+		sql = '''INSERT INTO scans(stamp, online, value)
+			VALUES(?, ?, ?)'''
+		values = (stamp, 1, seconds)
+		if seconds < self.threshold:
+			values[1] = (stamp, 0, seconds)
+		self.insert( sql, values )
+	
+	def handle_offline( self, error ):
+		sql = '''INSERT INTO scans( stamp, online, error)
+			VALUES(?, ?, ?)'''
+		self.insert( sql, (stamp, 0, error) )
+
+	def insert( self, sql, tuple ):
 		conn = sqlite3.connect( self.db )
 		c = conn.cursor()
 		c.execute( sql, tuple )
 		conn.commit()
 		c.close()
-		return True
 		
 	def send( self, conn ):
 #		print( "Sending uptime request to " + self.jid )
@@ -176,10 +176,20 @@ for server in server_list:
 my_jid=xmpp.protocol.JID( config.get( 'system', 'jid' ) )
 cl=xmpp.Client( my_jid.getDomain(), debug=[] )
 cl.connect()
-cl.auth( my_jid.getNode(), config.get( 'system', 'pwd' ), resource=resource )
-cl.sendInitPresence()
-cl.RegisterHandler( 'iq', request.handler, ns=xmpp.NS_LAST )
+if cl.connected == '':
+	print( "Error: %s: Cannot connect to server" %(my_jid.getDomain()) )
+	if my_jid.getDomain() in request.requests.keys():
+		request.requests[my_jid.getDomain()].handle_offline( 'Could not connect to server' )
+	sys.exit()
 
+# authenticate:
+x = cl.auth( my_jid.getNode(), config.get( 'system', 'pwd' ), resource=resource )
+if x == None:
+	print( "Error: Cannot authenticate with user/pass provided in config-file." )
+	sys.exit(1)
+
+cl.sendInitPresence(0)
+cl.RegisterHandler( 'iq', request.handler, ns=xmpp.NS_LAST )
 connection_thread = connection( cl, options.timeout )
 connection_thread.start()
 
