@@ -47,7 +47,7 @@ if 'ssh' in os.environ.keys():
         
         from subprocess import *
         plugin = os.path.basename( sys.argv[0] )
-        cmd = ['ssh', ssh, 'munin-run', plugin ] + sys.argv[1:]
+        cmd = ['ssh', '-o', 'ConnectTimeout=10', ssh, 'munin-run', plugin ] + sys.argv[1:]
         print( Popen( cmd , stdout=PIPE ).communicate()[0].strip() )
         sys.exit(0)
 
