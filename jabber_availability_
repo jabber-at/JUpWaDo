@@ -31,106 +31,107 @@ import sys, os, ConfigParser
 
 suffix = os.path.basename(sys.argv[0])[20:]
 
+
 def get_filename(file):
-	# gets the db filename
-	file = file.strip('/ ')
-	return file.replace('/', '_')
+    # gets the db filename
+    file = file.strip('/ ')
+    return file.replace('/', '_')
+
 
 def get_fieldname(string):
-	# gets the munin field name
-	string = get_filename(string)
-	return string.replace('.', '_')
+    # gets the munin field name
+    string = get_filename(string)
+    return string.replace('.', '_')
 
 if 'ssh' in os.environ.keys():
-	# this means that we are calling the same script on a remote machine
-	ssh = os.environ['ssh']
+    # this means that we are calling the same script on a remote machine
+    ssh = os.environ['ssh']
 
-	from subprocess import *
-	plugin = os.path.basename(sys.argv[0])
-	cmd = ['ssh', '-o', 'ConnectTimeout=10', ssh, 'munin-run', plugin ] + sys.argv[1:]
-	print(Popen(cmd , stdout=PIPE).communicate()[0].strip())
-	sys.exit(0)
+    from subprocess import *
+    plugin = os.path.basename(sys.argv[0])
+    cmd = ['ssh', '-o', 'ConnectTimeout=10', ssh, 'munin-run', plugin] + sys.argv[1:]
+    print(Popen(cmd, stdout=PIPE).communicate()[0].strip())
+    sys.exit(0)
 
 if len(sys.argv) > 1:
-	# autoconf and suggest parameters:
-	if sys.argv[1] == 'autoconf':
-		print('yes')
-		sys.exit(0)
-	elif sys.argv[1] == 'suggest':
-		print('hour')
-		print('day')
-		print('month')
-		print('year')
-		sys.exit(0)
+    # autoconf and suggest parameters:
+    if sys.argv[1] == 'autoconf':
+        print('yes')
+        sys.exit(0)
+    elif sys.argv[1] == 'suggest':
+        print('hour')
+        print('day')
+        print('month')
+        print('year')
+        sys.exit(0)
 
 # read config
 config = ConfigParser.ConfigParser({'path': os.path.expanduser('~/.jupwado/db/')})
-config_files = [ os.path.expanduser('~/.jupwado/config'), '/etc/jupwado.conf' ]
+config_files = [os.path.expanduser('~/.jupwado/config'), '/etc/jupwado.conf']
 if 'config' in os.environ.keys():
-	config_files.append(os.environ['config'])
+    config_files.append(os.environ['config'])
 config.read(config_files)
-server_list = [ s for s in config.sections() if s != 'system' ]
+server_list = [s for s in config.sections() if s != 'system']
 if len(server_list) == 0:
-	print('Error: No servers specified.')
+    print('Error: No servers specified.')
 
 # config parameter
 if len(sys.argv) > 1 and sys.argv[1] == 'config':
-		print("""graph_title jabber availability in the last %s
+        print("""graph_title jabber availability in the last %s
 graph_args --base 1000 --lower-limit 99 --upper-limit 100 --rigid --alt-y-grid -L 6
 graph_printf %s
 graph_scale no
 graph_vlabel availability
 graph_category Availability
 graph_info This plugin uses a bot that connects from a remote location to jabber.fsinf.at (once every two minutes). It then sends a <a href="http://xmpp.org/extensions/xep-0012.html">XEP-0012 (Last Activity)</a> request to each monitored server. It then logs if the server is down (or was in the last two minutes). <a href="http://en.wikipedia.org/wiki/Availability">Availability</a> is then calculated from the logged scans.""" % (suffix, '%6.5lf'))
-		for server in server_list:
-			field = get_fieldname(server)
-			print("""%s.label %s""" %(field, server))
-			print("""%s.min 0""" %(field))
-			print("""%s.max 100""" %(field))
-			if config.has_option(server, 'info'):
-				info = config.get(server, 'info')
-				print("""%s.info %s""" %(field, info))
+        for server in server_list:
+            field = get_fieldname(server)
+            print("""%s.label %s""" % (field, server))
+            print("""%s.min 0""" % (field))
+            print("""%s.max 100""" % (field))
+            if config.has_option(server, 'info'):
+                info = config.get(server, 'info')
+                print("""%s.info %s""" % (field, info))
 
-		sys.exit(0)
+        sys.exit(0)
 
 # runtime configuration
 import time, sqlite3
-secs = 0 # default: since forever
+secs = 0  # default: since forever
 now = int(time.time())
 if suffix == 'hour':
-	secs = 'stamp > %s' % (now - 3600)
+    secs = 'stamp > %s' % (now - 3600)
 elif suffix == 'day':
-	secs = 'stamp > %s' % (now - 3600*24)
+    secs = 'stamp > %s' % (now - 3600*24)
 elif suffix == 'month':
-	secs = 'stamp > %s' % (now - 3600*24*31)
+    secs = 'stamp > %s' % (now - 3600*24*31)
 elif suffix == 'year':
-	secs = 'stamp > %s' % (now - 3600*24*31*365)
+    secs = 'stamp > %s' % (now - 3600*24*31*365)
 
 # assemble the SQL-statements:
 sql_offline = '''SELECT count(*) FROM scans INDEXED BY status WHERE online=0'''
 sql_online = '''SELECT count(*) FROM scans WHERE '''
 if secs != 0:
-	sql_offline += ' AND ' + secs
-	sql_online += secs + ' AND '
+    sql_offline += ' AND ' + secs
+    sql_online += secs + ' AND '
 sql_online += 'online=1'
 
 # actually print out values (for now, this is done in a single thread)
 for server in server_list:
-	path = config.get(server, 'path')
-	db = os.path.normpath(path + '/' + get_filename(server))
+    path = config.get(server, 'path')
+    db = os.path.normpath(path + '/' + get_filename(server))
 
-	conn = sqlite3.connect(db)
-	c = conn.cursor()
-	c.execute(sql_offline)
-	downtime = float(c.fetchall()[0][0])
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute(sql_offline)
+    downtime = float(c.fetchall()[0][0])
 
-	c.execute(sql_online)
-	uptime = float(c.fetchall()[0][0])
-	c.close()
-	conn.close()
+    c.execute(sql_online)
+    uptime = float(c.fetchall()[0][0])
+    c.close()
+    conn.close()
 
-	if (uptime+downtime) != 0:
-		value = (uptime/(uptime+downtime))*100
-		field = get_fieldname(server)
-		print ("%s.value %f" % (field, value))
-
+    if (uptime+downtime) != 0:
+        value = (uptime/(uptime+downtime))*100
+        field = get_fieldname(server)
+        print ("%s.value %f" % (field, value))
