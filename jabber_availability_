@@ -27,7 +27,11 @@
 #%# family=auto
 #%# capabilities=autoconf suggest
 
-import sys, os, ConfigParser
+import ConfigParser
+import os
+import sqlite3
+import sys
+import time
 
 suffix = os.path.basename(sys.argv[0])[20:]
 
@@ -96,7 +100,6 @@ graph_info This plugin uses a bot that connects from a remote location to jabber
         sys.exit(0)
 
 # runtime configuration
-import time, sqlite3
 secs = 0  # default: since forever
 now = int(time.time())
 if suffix == 'hour':

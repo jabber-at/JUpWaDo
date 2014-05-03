@@ -1,6 +1,12 @@
 #!/usr/bin/python -Wignore::DeprecationWarning
 
-import os, sys, time, sqlite3, threading, ConfigParser
+import ConfigParser
+import os
+import sqlite3
+import sys
+import threading
+import time
+
 from optparse import OptionParser
 
 import xmpp
@@ -126,14 +132,15 @@ class connection(threading.Thread):
         self.timer.start()
 
         # this loops until all packets are processed
-        while self.StepOn(): pass
+        while self.StepOn():
+            pass
 
     def stop(self):
         self.cont = False
         request.cleanup()
 
     def StepOn(self):
-        if self.cont == False:
+        if not self.cont:
             return 0
         if len(request.requests) == 0:
             self.timer.cancel()
@@ -146,14 +153,14 @@ class connection(threading.Thread):
         return 1
 
 parser = OptionParser()
-parser.add_option('-c', '--config', metavar='FILE',
-    help='Location of config-file')
-parser.add_option('-t', '--threshold', metavar='SECS', type="int", default=300,
-    help='''Uptimes below this threshold will be considered as "Was offline
-since the last scan" and will be logged as offline. Usually this time should
-correspond to how often this script is executed. [default: %default (= five minutes)]''')
+parser.add_option('-c', '--config', metavar='FILE', help='Location of config-file')
+parser.add_option(
+    '-t', '--threshold', metavar='SECS', type="int", default=300,
+    help='''Uptimes below this threshold will be considered as "Was offline since the last scan
+and will be logged as offline. Usually this time should correspond to how often this script is
+executed. [default: %default (= five minutes)]''')
 parser.add_option('--timeout', metavar='SECS', type="int", default=15,
-    help='''Timeout after SECS seconds. [default: %default]''')
+                  help='Timeout after SECS seconds. [default: %default]')
 options, args = parser.parse_args()
 
 config = ConfigParser.ConfigParser({'path': os.path.expanduser('~/.jupwado/db/')})
@@ -176,8 +183,8 @@ for server in server_list:
     if req.check_env():
         request.requests[req.jid] = req
 
-my_jid=xmpp.protocol.JID(config.get('system', 'jid'))
-cl=xmpp.Client(my_jid.getDomain(), debug=[])
+my_jid = xmpp.protocol.JID(config.get('system', 'jid'))
+cl = xmpp.Client(my_jid.getDomain(), debug=[])
 cl.connect()
 if cl.connected == '':
     print("Error: %s: Cannot connect to server" % (my_jid.getDomain()))
@@ -187,7 +194,7 @@ if cl.connected == '':
 
 # authenticate:
 x = cl.auth(my_jid.getNode(), config.get('system', 'pwd'), resource=resource)
-if x == None:
+if x is None:
     print("Error: Cannot authenticate with user/pass provided in config-file.")
     sys.exit(1)
 
