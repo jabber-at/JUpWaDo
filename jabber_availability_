@@ -1,6 +1,6 @@
 #!/usr/bin/python -Wignore::DeprecationWarning
 # -*- coding: utf-8 -*-
-
+#
 # The name jupwado stands for "jabber uptime watchdog". This script is a
 # munin-plugin that reads the database that is filled by jupwado.py. It then
 # calculates availability for each monitored server as uptime/total_time.

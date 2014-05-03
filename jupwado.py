@@ -1,4 +1,28 @@
 #!/usr/bin/python -Wignore::DeprecationWarning
+# -*- coding: utf-8 -*-
+#
+# The name jupwado stands for "jabber uptime watchdog". This script is a
+# munin-plugin that reads the database that is filled by jupwado.py. It then
+# calculates availability for each monitored server as uptime/total_time.
+#
+# This script is a wildcard-plugin, so you must rename it to something like
+# jabber_availability_month
+# or something similar. Currently this script understands the suffix _month, _year
+# and _day. If no suffix is provided, this will calculate the time from all scans
+# that are currently logged in the database.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import ConfigParser
 import os
